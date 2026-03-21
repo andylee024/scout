@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from data_sources.marketplaces.base import ListingQuery
 from data_sources.marketplaces.bizbuysell import BizBuySellProvider
+from data_sources.marketplaces.validation import validate_batch
 from scout.pipeline.data_sources.base import DataSource, NormalizedBatch
 from scout.pipeline.models.listing import Listing
 from scout.pipeline.models.query import Query
@@ -39,8 +40,19 @@ class BizBuySellDataSource(DataSource):
             if listing.name:
                 listings.append(listing)
 
+        validation = validate_batch(listings, query.industry)
+
         return NormalizedBatch(
             businesses=[],
             listings=listings,
-            signals={"market_stats": raw.get("market_stats", {})},
+            signals={
+                "market_stats": raw.get("market_stats", {}),
+                "validation": {
+                    "query_industry": validation.query_industry,
+                    "total": validation.total,
+                    "relevant": validation.relevant,
+                    "precision_pct": validation.precision_pct,
+                    "irrelevant_names": validation.irrelevant_names,
+                },
+            },
         )

@@ -42,7 +42,7 @@ Run commands from `scout/` (the project root):
 - `pip install -r requirements.txt` — install runtime dependencies.
 - `pip install -e .` — editable install with CLI entrypoint (`scout`).
 - `pip install -e ".[dev]"` — add dev tools (pytest, black, ruff).
-- `scout research "HVAC in Los Angeles"` — run the terminal UI workflow.
+- `scout view "HVAC in Los Angeles"` — run the terminal UI workflow.
 - `pytest -v` — run the full test suite.
 - `SCOUT_LIVE_TESTS=1 pytest tests/data_sources/test_smoke.py -v` — live smoke tests (uses external APIs).
 

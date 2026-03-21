@@ -12,7 +12,6 @@ from data_sources.maps.google_maps import GoogleMapsTool
 from data_sources.maps.google_reviews import GoogleReviewsScraper
 from data_sources.marketplaces.bizbuysell import BizBuySellProvider as BizBuySellTool
 from data_sources.marketplaces.base import ListingQuery
-from data_sources.fdd.minnesota import MinnesotaFDDScraper
 from data_sources.sentiment.reddit import RedditSentimentScraper
 from data_sources.shared.config import ScraperConfig
 
@@ -61,17 +60,6 @@ def test_bizbuysell_smoke():
         pytest.skip("BizBuySell returned no listings (possible bot block)")
 
 
-def test_fdd_minnesota_smoke():
-    _skip_live("Set SCOUT_LIVE_TESTS=1 to run live data source tests")
-
-    scraper = MinnesotaFDDScraper()
-    result = scraper.search("car wash", max_results=1, download_pdfs=False, extract_item19=False, use_cache=False)
-    assert result.get("source") == "minnesota"
-    assert isinstance(result.get("results"), list)
-    if not result.get("results"):
-        pytest.skip("No FDD results returned for Minnesota")
-
-
 @pytest.mark.skipif(
     not (os.getenv("REDDIT_CLIENT_ID") and os.getenv("REDDIT_CLIENT_SECRET")),
     reason="Missing Reddit API credentials",
@@ -85,5 +73,5 @@ def test_reddit_smoke():
         user_agent=ScraperConfig.REDDIT_USER_AGENT,
     )
     result = scraper.search("hvac", max_posts=10, days_back=30, extract_quotes=False, use_cache=False)
-    assert result.get("source") == "reddit"
+    assert result.get("source") == "reddit_sentiment"
     assert isinstance(result.get("posts"), list)

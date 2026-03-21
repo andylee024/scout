@@ -23,3 +23,23 @@ def test_runner_builds_query_and_calls_workflow():
     assert dataset.query.max_results == 42
     assert dataset.query.use_cache is False
     assert workflow.last_query is dataset.query
+
+
+def test_runner_default_sources_focus_on_businesses_and_listings(monkeypatch):
+    class StubSource:
+        def __init__(self, name: str):
+            self.name = name
+
+    class StubStore:
+        pass
+
+    monkeypatch.setattr("scout.pipeline.runner.GoogleMapsDataSource", lambda: StubSource("google_maps"))
+    monkeypatch.setattr("scout.pipeline.runner.BizBuySellDataSource", lambda: StubSource("bizbuysell"))
+    monkeypatch.setattr("scout.pipeline.runner.SQLiteDataStore", StubStore)
+
+    runner = Runner()
+
+    assert [source.name for source in runner.workflow.data_sources] == [
+        "google_maps",
+        "bizbuysell",
+    ]

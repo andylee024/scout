@@ -20,15 +20,12 @@ class ScraperConfig:
     PAGE_LOAD_WAIT = 3
 
     # ==================== Cache Settings ====================
-    FDD_CACHE_TTL_DAYS = 90  # FDDs don't change often
     SENTIMENT_CACHE_TTL_DAYS = 7  # Reviews/Reddit change frequently
     REVIEWS_CACHE_TTL_DAYS = 7
 
     # ==================== Output Directories ====================
     OUTPUT_DIR = "outputs"
-    FDD_OUTPUT_DIR = "outputs/fdds"
     CACHE_DIR = "outputs/cache"
-    PDF_DOWNLOAD_DIR = "outputs/pdfs"
 
     # ==================== API Keys ====================
     GOOGLE_MAPS_API_KEY: Optional[str] = os.getenv("GOOGLE_MAPS_API_KEY")

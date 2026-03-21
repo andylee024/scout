@@ -1,4 +1,0 @@
-interface:
-  display_name: "Query Source Routing"
-  short_description: "Route market queries to Google Maps and BizBuySell inputs"
-  default_prompt: "Deconstruct this market search query into Google Maps and BizBuySell method inputs."

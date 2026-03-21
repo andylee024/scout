@@ -1,28 +1,17 @@
 # Docs Guide
 
-This repo keeps a small set of active canonical docs plus focused implementation notes.
+This repo keeps a small canonical docs set for the Scout data pipeline.
 
 ## Active Docs
-- `docs/prd.md` — canonical product requirements and roadmap.
-- `docs/architecture.md` — current codebase structure and runtime flow.
-- `docs/feature/v1-data-pipeline/plan.md` — canonical pipeline naming, workflow, and ETL design.
-- `docs/feature/v1-data-pipeline/bizbuysell-notes.md` — BizBuySell design decisions, live validation record, and cleanup plan.
-
-## Feature Artifacts
-- `docs/feature/hex-ui-exploration/research-canvas-component-mockup.md` — A24-86 research canvas component mockup artifact.
-- `docs/feature/hex-ui-exploration/artifacts/README.md` — screenshot bundle of current Scout CLI product UI states.
-- `docs/feature/v2-ui-concepts/outreach-studio-component-mockup.md` — initial outreach studio component design for lead/campaign management.
-
-## Skills
-- `skills/query-source-routing/SKILL.md` — skill for deconstructing user market queries into Google Maps and BizBuySell source inputs.
-- `skills/query-source-routing/references/bizbuysell-slugs.md` — observed BizBuySell slug catalog used for source routing decisions.
+- `docs/architecture.md` — source of truth for the runtime pipeline, code layout, and merge target.
+- `docs/prd.md` — current product scope, goals, and non-goals.
+- `docs/feature/v1-data-pipeline/plan.md` — current implementation roadmap.
+- `docs/feature/v1-data-pipeline/bizbuysell-notes.md` — BizBuySell-specific behavior and constraints.
 
 ## Archive Summaries
-- `docs/_archive/v0-listings-summary.md` — condensed record of early listings pipeline discovery.
-- `docs/_archive/v0-data-summary.md` — condensed record of early multi-source data work and refactor lessons.
-- `docs/_archive/ui-history-summary.md` — condensed record of terminal UI evolution.
+- `docs/_archive/v0-listings-summary.md` — early listing-ingestion lessons.
 
-## Archive Policy
-- Keep active docs minimal and canonical.
-- Consolidate superseded feature docs into short archive summaries.
-- Remove placeholder docs that duplicate no real decisions.
+## Policy
+- Keep docs implementation-focused and current.
+- Prefer updating canonical docs over creating parallel feature narratives.
+- Archive or delete exploratory docs once they stop affecting the active pipeline.

@@ -2,7 +2,7 @@
 
 **Status:** Archived
 **Original window:** 2026-02-22 to 2026-03-02
-**Superseded by:** `docs/feature/v1-data-pipeline/plan.md`
+**Superseded by:** `docs/architecture.md`
 
 ---
 
@@ -33,4 +33,4 @@ The v0-listings docs explored how to reliably ingest businesses-for-sale listing
 
 ## Cleanup note
 
-The detailed planning/research/discovery files in `docs/feature/v0-listings/` were consolidated into this summary to reduce duplication and keep one active pipeline plan.
+The detailed planning/research/discovery files in `docs/feature/v0-listings/` were consolidated into this summary to reduce duplication and keep one active architecture narrative.

@@ -1,135 +1,52 @@
-# v1-data-pipeline: Workflow Plan (Pre-Implementation)
+# v1 Data Pipeline Plan
 
-**Status:** Draft (pre-implementation)
-**Date:** 2026-03-02
-**Scope:** Data pipeline architecture only (UI out of scope)
+**Status:** Active roadmap  
+**Last Updated:** 2026-03-21  
+**Scope:** Data pipeline only
 
----
-
-## Goal
-
-Define one simple, robust, shared mental model for Scout's data pipeline before code changes:
-
-- Use one execution flow
-- Use one set of terms
-- Use one canonical data path from query to dataset
-
----
-
-## Canonical Terms
-
-Use these names consistently in docs and code:
-
-1. **Model**: typed data shape shared between components.
-2. **Workflow**: stage-based orchestration engine.
-3. **Runner**: entrypoint that starts one workflow run.
-4. **DataSource**: source-specific fetch component.
-5. **DataStore**: persistence layer for raw + canonical data.
-
-### Model Types
-
-The first canonical model set:
-
-1. `Query`
-2. `Listing`
-3. `Business`
-4. `MarketDataset`
-
----
-
-## ETL Workflow (ASCII)
+## Current State
 
 ```text
-[CLI / Scheduler / API]
-          |
-          v
-       [Runner]
-  (build Query, run_id)
-          |
-          v
-      [Workflow]
-   -----------------
-   1) plan
-   2) fetch via DataSources
-   3) persist raw payloads
-   4) normalize to Models
-   5) validate + confidence
-   6) upsert canonical tables
-   7) build MarketDataset
-          |
-          +------------------------------+
-          |                              |
-          v                              v
-[DataStore: raw snapshots]     [DataStore: canonical SQLite]
-  (audit/replay/debug)         (listings/businesses/signals)
-           \                            /
-            \                          /
-             +-----------v------------+
-                         |
-                  [MarketDataset]
+scout run
+  -> Query
+  -> Runner
+  -> Workflow
+      -> GoogleMapsDataSource
+      -> BizBuySellDataSource
+  -> raw snapshots
+  -> canonical businesses + listings
+  -> MarketDataset
 ```
 
-### DataSource fan-out in step 2
+SQLite is the default local store. Supabase is the shared review target.
 
-```text
-Workflow -> GoogleMapsDataSource  -> Business records
-Workflow -> BizBuySellDataSource  -> Listing records
-Workflow -> RedditDataSource      -> Sentiment signals
-```
+## Immediate Priorities
 
----
+1. Add `place_id` to the canonical `Business` model and persistence layer.
+2. Add Clodo owner/contact ingestion.
+3. Add Google reviews as a review-signal source keyed by `place_id`.
+4. Add a merge stage that produces canonical `Lead` and `OwnerContact` records.
+5. Persist merged records to Supabase.
+6. Make downstream consumers read merged pipeline output instead of mock or packaged data.
 
-## Target Directory Layout
+## Guardrails
 
-```text
-scout/scout/pipeline/
-├── runner.py                 # Runner
-├── workflow.py               # Workflow
-├── models/
-│   ├── query.py              # Query
-│   ├── listing.py            # Listing
-│   ├── business.py           # Business
-│   └── market_dataset.py     # MarketDataset
-├── data_sources/
-│   ├── base.py               # DataSource interface
-│   ├── google_maps.py        # GoogleMapsDataSource
-│   ├── bizbuysell.py         # BizBuySellDataSource
-│   └── reddit.py             # RedditDataSource
-└── data_store/
-    ├── base.py               # DataStore interface
-    ├── raw_snapshot.py       # raw payload persistence
-    └── sqlite.py             # canonical persistence
-```
+1. Keep one pipeline path only.
+2. Persist raw payloads before normalization.
+3. Keep fail-soft behavior by source.
+4. Keep source-specific quirks out of `Workflow`.
+5. Prefer a small canonical model set over ad-hoc per-surface shapes.
 
-This is a target-state structure for the refactor, not a claim that it already exists.
+## Definition Of Done For This Phase
 
----
+1. A run can fetch businesses and listings reliably.
+2. Owner contacts and reviews can be attached to the right businesses.
+3. The database contains one clean lead-level review surface.
+4. Reruns remain idempotent and auditable.
 
-## Robustness Rules
+## Out Of Scope
 
-1. Fail soft by DataSource: one source failure must not kill the whole run.
-2. Persist raw payloads before normalization for replay/debug.
-3. Keep idempotent upserts in canonical tables.
-4. Emit per-stage status and timings for each run.
-5. Return partial `MarketDataset` with explicit coverage metadata.
-
----
-
-## Implementation Sequence (Before UI Changes)
-
-1. Freeze Models and naming.
-2. Implement Runner + Workflow skeleton with stage status events.
-3. Standardize one DataSource interface and wrap existing source logic.
-4. Implement DataStore split (raw + canonical).
-5. Move existing market/listing path to the new Workflow.
-6. Keep UI integration as a thin consumer of `MarketDataset`.
-
----
-
-## Out of Scope
-
-1. UI redesign
-2. Assistant behavior changes
-3. Scoring/watchlist workflows
-4. New paid/external providers
-
+1. Broad UI exploration.
+2. Workflow orchestration beyond lead generation.
+3. CRM replacement features.
+4. Additional low-priority data sources before merge quality is correct.

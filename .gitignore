@@ -20,8 +20,3 @@ env/
 # OS
 .DS_Store
 Thumbs.db
-
-# Project specific
-scout/data/fdds/*.pdf
-scout/outputs/*
-!scout/outputs/.gitkeep
