@@ -1,33 +1,30 @@
-"""Scout CLI for pipelines and lead review."""
+"""Scout CLI for pipeline and database workflows."""
 
 from __future__ import annotations
 
+import json
+
 import click
 
-from scout.operator.tui.app import ScoutResearchApp
-from scout.operator.tui.dataset_loader import dataset_names, load_dataset_state
-from scout.operator.tui.mock_data import build_mock_state
 from scout.pipeline.runner import Runner
 from scout.shared.query_parser import parse_query
 
 
 @click.group()
 def cli() -> None:
-    """Scout data pipeline and lead viewer CLI."""
+    """Scout data pipeline CLI."""
+
+
+# -------------------------------------------------------------------
+# Legacy pipeline command
+# -------------------------------------------------------------------
 
 
 @cli.command("run")
 @click.argument("query")
 @click.option("--max-results", default=100, show_default=True, type=int)
 @click.option("--no-cache", is_flag=True, default=False)
-@click.option(
-    "--store",
-    type=click.Choice(["sqlite", "supabase"]),
-    default="sqlite",
-    show_default=True,
-    help="Persistence backend for pipeline results.",
-)
-def run_pipeline(query: str, max_results: int, no_cache: bool, store: str) -> None:
+def run_pipeline(query: str, max_results: int, no_cache: bool) -> None:
     """Run one ETL pipeline execution from a natural-language query.
 
     Example: scout run "HVAC businesses in Los Angeles"
@@ -37,13 +34,7 @@ def run_pipeline(query: str, max_results: int, no_cache: bool, store: str) -> No
     except Exception as exc:  # noqa: BLE001
         raise click.ClickException(str(exc)) from exc
 
-    data_store = None
-    if store == "supabase":
-        from scout.pipeline.data_store import get_supabase_store
-
-        data_store = get_supabase_store()
-
-    runner = Runner(data_store=data_store)
+    runner = Runner()
     try:
         dataset = runner.run(
             industry=industry,
@@ -68,38 +59,152 @@ def run_pipeline(query: str, max_results: int, no_cache: bool, store: str) -> No
         )
 
 
-def _build_view_state(query: str | None, mock: bool, dataset: str | None):
-    if dataset:
-        return load_dataset_state(dataset, query=query)
+# -------------------------------------------------------------------
+# Data pipeline commands (agent-friendly)
+# -------------------------------------------------------------------
 
-    if not query:
-        raise click.ClickException("QUERY is required unless --dataset is provided.")
 
-    if not mock:
-        raise click.ClickException(
-            "Live viewer mode is not implemented yet. Use the default mock mode."
+@cli.command("scrape-businesses")
+@click.argument("industry")
+@click.argument("location")
+@click.option("--max-results", default=100, show_default=True, type=int)
+@click.option("--no-cache", is_flag=True, default=False)
+@click.option("--output", default=None, help="Output CSV path.")
+def scrape_businesses_cmd(
+    industry: str, location: str, max_results: int, no_cache: bool, output: str | None
+) -> None:
+    """Scrape Google Maps businesses to CSV.
+
+    Example: scout scrape-businesses "fire protection" "California"
+    """
+    from scout.pipeline.supabase_service import scrape_businesses
+
+    try:
+        path = scrape_businesses(
+            industry=industry,
+            location=location,
+            max_results=max_results,
+            use_cache=not no_cache,
+            output=output,
         )
-
-    return build_mock_state(query)
-
-
-def _run_viewer(query: str | None, mock: bool, dataset: str | None) -> None:
-    app = ScoutResearchApp(_build_view_state(query, mock, dataset))
-    app.run()
+    except Exception as exc:  # noqa: BLE001
+        raise click.ClickException(str(exc)) from exc
+    click.echo(path)
 
 
-@cli.command("view")
-@click.argument("query", required=False)
-@click.option(
-    "--dataset",
-    type=click.Choice(dataset_names()),
-    default=None,
-    help="Load a packaged lead dataset instead of generating mock rows from a query.",
-)
-@click.option("--mock/--live", default=True, show_default=True)
-def view(query: str | None, dataset: str | None, mock: bool) -> None:
-    """Launch the Scout lead viewer."""
-    _run_viewer(query, mock, dataset)
+@cli.command("ingest-contacts")
+@click.argument("clodo_csv")
+@click.option("--output", default=None, help="Output CSV path.")
+def ingest_contacts_cmd(clodo_csv: str, output: str | None) -> None:
+    """Normalize a Clodo CSV to a clean contacts CSV.
+
+    Example: scout ingest-contacts data/clodo-ai-leads.csv
+    """
+    from scout.pipeline.supabase_service import ingest_contacts
+
+    try:
+        path = ingest_contacts(clodo_csv, output=output)
+    except Exception as exc:  # noqa: BLE001
+        raise click.ClickException(str(exc)) from exc
+    click.echo(path)
+
+
+@cli.command("upload-businesses")
+@click.argument("csv_path")
+def upload_businesses_cmd(csv_path: str) -> None:
+    """Upload a businesses CSV to Supabase.
+
+    Example: scout upload-businesses outputs/businesses.csv
+    """
+    from scout.pipeline.supabase_service import upload_businesses
+
+    try:
+        count = upload_businesses(csv_path)
+    except Exception as exc:  # noqa: BLE001
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"{count} businesses upserted")
+
+
+@cli.command("upload-contacts")
+@click.argument("csv_path")
+def upload_contacts_cmd(csv_path: str) -> None:
+    """Upload a contacts CSV to Supabase.
+
+    Example: scout upload-contacts outputs/contacts.csv
+    """
+    from scout.pipeline.supabase_service import upload_contacts
+
+    try:
+        count = upload_contacts(csv_path)
+    except Exception as exc:  # noqa: BLE001
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"{count} contacts upserted")
+
+
+@cli.command("match-contacts")
+def match_contacts_cmd() -> None:
+    """Match unlinked contacts to businesses in Supabase."""
+    from scout.pipeline.supabase_service import match_contacts
+
+    try:
+        count = match_contacts()
+    except Exception as exc:  # noqa: BLE001
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"{count} contacts matched")
+
+
+@cli.command("backfill")
+@click.option("--output", default=None, help="Output CSV path for new businesses.")
+def backfill_cmd(output: str | None) -> None:
+    """Look up unmatched contacts on Google Maps, upload, and re-match.
+
+    Example: scout backfill
+    """
+    from scout.pipeline.supabase_service import backfill_from_contacts
+
+    try:
+        result = backfill_from_contacts(output=output)
+    except Exception as exc:  # noqa: BLE001
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"searched: {result['searched']}")
+    click.echo(f"found: {result['found']}")
+    click.echo(f"uploaded: {result['uploaded']}")
+    click.echo(f"matched: {result['matched']}")
+
+
+@cli.command("pull-leads")
+@click.option("--output", default=None, help="Output CSV path.")
+def pull_leads_cmd(output: str | None) -> None:
+    """Pull merged leads from Supabase to CSV.
+
+    Example: scout pull-leads --output leads.csv
+    """
+    from scout.pipeline.supabase_service import pull_leads
+
+    try:
+        path = pull_leads(output=output)
+    except Exception as exc:  # noqa: BLE001
+        raise click.ClickException(str(exc)) from exc
+    click.echo(path)
+
+
+@cli.command("verify")
+@click.argument("table")
+def verify_cmd(table: str) -> None:
+    """Print row count and sample rows for a Supabase table.
+
+    Example: scout verify businesses
+    """
+    from scout.pipeline.supabase_service import verify
+
+    try:
+        result = verify(table)
+    except Exception as exc:  # noqa: BLE001
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"table: {result['table']}")
+    click.echo(f"rows: {result['row_count']}")
+    for row in result["sample_rows"]:
+        click.echo(json.dumps(row, default=str))
 
 
 if __name__ == "__main__":

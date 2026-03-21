@@ -86,6 +86,18 @@ class GoogleMapsTool(Tool):
         return response
 
 
+    def lookup(self, name: str, location: str) -> Optional[Dict[str, Any]]:
+        """Look up a single business by name and location.
+
+        Returns the first Google Maps result or None.
+        """
+        result = self.search(
+            industry=name, location=location, max_results=1, use_cache=True
+        )
+        results = result.get("results", [])
+        return results[0] if results else None
+
+
 if __name__ == "__main__":
     # Test the tool
     tool = GoogleMapsTool()

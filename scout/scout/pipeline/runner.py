@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from scout.pipeline.data_sources.bizbuysell import BizBuySellDataSource
 from scout.pipeline.data_sources.google_maps import GoogleMapsDataSource
+from scout.pipeline.data_store import get_supabase_store
 from scout.pipeline.data_store.base import DataStore
-from scout.pipeline.data_store.sqlite import SQLiteDataStore
 from scout.pipeline.models.market_dataset import MarketDataset
 from scout.pipeline.models.query import Query
 from scout.pipeline.workflow import Workflow
@@ -24,7 +24,7 @@ class Runner:
                 GoogleMapsDataSource(),
                 BizBuySellDataSource(),
             ],
-            data_store=data_store or SQLiteDataStore(),
+            data_store=data_store or get_supabase_store(),
         )
 
     def run(self, industry: str, location: str, max_results: int = 100, use_cache: bool = True) -> MarketDataset:

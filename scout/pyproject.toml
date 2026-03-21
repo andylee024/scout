@@ -12,7 +12,6 @@ dependencies = [
     "click>=8.0",
     "python-dotenv>=1.0",
     "requests>=2.28",
-    "textual>=0.61.0",
     "googlemaps>=4.10.0",
     "selenium>=4.0.0",
     "beautifulsoup4>=4.11.0",
@@ -39,9 +38,6 @@ scout = "scout.main:cli"
 [tool.setuptools]
 packages = [
     "scout",
-    "scout.operator",
-    "scout.operator.tui",
-    "scout.operator.tui.datasets",
     "scout.pipeline",
     "scout.pipeline.models",
     "scout.pipeline.data_sources",
@@ -54,9 +50,6 @@ packages = [
     "data_sources.marketplaces",
     "data_sources.sentiment",
 ]
-
-[tool.setuptools.package-data]
-"scout.operator.tui.datasets" = ["*.csv"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

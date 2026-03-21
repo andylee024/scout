@@ -14,10 +14,11 @@ Scout exists to turn a plain-English market query into database-ready records fo
 1. `scout run` parses a natural-language query into `industry` and `location`.
 2. The pipeline fetches operating businesses from Google Maps.
 3. The pipeline fetches businesses-for-sale listings from BizBuySell.
-4. Raw payloads and canonical records are persisted to local storage.
-5. The result is a repeatable dataset that can later be enriched and synced into a database.
+4. Businesses are persisted to Supabase, including Google `place_id` for stable review joins.
+5. Listings are returned in the run dataset, but are not yet persisted by the active Supabase store.
+6. Separate helper commands normalize Clodo contacts, upload businesses/contacts, link contacts to businesses, export the `leads` view, and verify table state.
 
-The TUI remains in the repo, but it is not the canonical product surface.
+The canonical product surface is the pipeline plus database outputs.
 
 ## Near-Term Product Target
 
@@ -35,15 +36,15 @@ The primary shared review surface is expected to be Supabase.
 ## Goals
 
 1. Make market reruns deterministic and repeatable.
-2. Preserve raw source payloads for replay and debugging.
-3. Normalize source data into canonical records before database sync.
+2. Normalize source data into canonical records before database sync.
+3. Keep stable join keys such as `place_id`, domain, and state available for enrichment.
 4. Merge businesses, listings, owner contacts, and review signals into outreach-ready leads.
 5. Keep source coverage and failure state visible for every run.
 
 ## Non-Goals
 
 1. Building a large workflow or queueing system inside Scout.
-2. Treating the TUI as the primary system of record.
+2. Building an in-repo review UI as part of the core product.
 3. Using Linear or another external tool as the canonical database.
 4. Expanding source count before merge quality is reliable.
 5. Shipping complex scoring, valuation, or recommendation systems.
@@ -58,7 +59,8 @@ The primary shared review surface is expected to be Supabase.
 1. `Query`
 2. `Business`
 3. `Listing`
-4. `MarketDataset`
+4. `Contact`
+5. `MarketDataset`
 
 ## Canonical Output Target
 
@@ -69,6 +71,6 @@ The primary shared review surface is expected to be Supabase.
 ## Definition Of Success
 
 1. A query can be rerun safely with idempotent persistence.
-2. Businesses and listings land in the database with clear provenance.
+2. Businesses land in the database with clear provenance.
 3. Owner contacts and review signals can be joined to the right business.
 4. Partners can review one merged lead table and begin outreach.

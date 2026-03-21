@@ -9,6 +9,7 @@ from typing import Any
 @dataclass
 class Business:
     name: str
+    place_id: str = ""
     address: str = ""
     phone: str = ""
     website: str = ""
@@ -23,6 +24,7 @@ class Business:
     def from_dict(cls, payload: dict[str, Any]) -> "Business":
         return cls(
             name=str(payload.get("name", "")),
+            place_id=str(payload.get("place_id", "")),
             address=str(payload.get("address", "")),
             phone=str(payload.get("phone", "")),
             website=str(payload.get("website", "")),
@@ -37,6 +39,7 @@ class Business:
     def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
+            "place_id": self.place_id,
             "address": self.address,
             "phone": self.phone,
             "website": self.website,

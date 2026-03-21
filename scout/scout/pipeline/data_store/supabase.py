@@ -19,7 +19,7 @@ class SupabaseDataStore(DataStore):
         key: str | None = None,
         batch_size: int = 500,
     ) -> None:
-        from supabase import Client, create_client
+        from postgrest import SyncPostgrestClient
 
         self.url = url or os.getenv("SUPABASE_URL", "")
         self.key = key or os.getenv("SUPABASE_KEY", "")
@@ -28,15 +28,17 @@ class SupabaseDataStore(DataStore):
                 "SUPABASE_URL and SUPABASE_KEY must be set "
                 "(env vars or constructor args)"
             )
-        self.client: Client = create_client(self.url, self.key)
+        self.client = SyncPostgrestClient(
+            base_url=f"{self.url}/rest/v1",
+            headers={
+                "apikey": self.key,
+                "Authorization": f"Bearer {self.key}",
+            },
+        )
         self.batch_size = batch_size
 
     def persist_raw(self, run_id: str, source: str, payload: dict[str, object]) -> str:
-        safe_payload = json.loads(json.dumps(payload, default=str))
-        row = {"run_id": run_id, "source": source, "payload": safe_payload}
-        self.client.table("raw_snapshots").upsert(
-            row, on_conflict="run_id,source"
-        ).execute()
+        """No-op — raw_snapshots table dropped in v2."""
         return f"{run_id}:{source}"
 
     def upsert_businesses(self, businesses: list[Business]) -> int:
@@ -47,12 +49,13 @@ class SupabaseDataStore(DataStore):
             {
                 "source": b.source,
                 "name": b.name,
+                "place_id": b.place_id,
                 "address": b.address,
+                "city": _extract_city(b.address) if not getattr(b, "city", "") else "",
+                "state": b.state or _extract_state(b.address),
                 "phone": b.phone,
                 "website": b.website,
                 "category": b.category,
-                "location": b.location,
-                "state": b.state,
                 "rating": b.rating,
                 "reviews": b.reviews,
             }
@@ -70,38 +73,17 @@ class SupabaseDataStore(DataStore):
         return count
 
     def upsert_listings(self, listings: list[Listing]) -> int:
-        if not listings:
-            return 0
+        """No-op — listings table dropped in v2."""
+        return 0
 
-        rows = [
-            {
-                "id": listing.id,
-                "source": listing.source,
-                "source_id": listing.source_id,
-                "url": listing.url,
-                "name": listing.name,
-                "industry": listing.industry,
-                "location": listing.location,
-                "state": listing.state,
-                "description": listing.description,
-                "asking_price": listing.asking_price,
-                "annual_revenue": listing.annual_revenue,
-                "cash_flow": listing.cash_flow,
-                "asking_multiple": listing.asking_multiple,
-                "days_on_market": listing.days_on_market,
-                "broker": listing.broker,
-                "listed_at": listing.listed_at,
-                "fetched_at": listing.fetched_at,
-            }
-            for listing in listings
-            if listing.name
-        ]
 
-        count = 0
-        for i in range(0, len(rows), self.batch_size):
-            batch = rows[i : i + self.batch_size]
-            self.client.table("listings").upsert(
-                batch, on_conflict="id"
-            ).execute()
-            count += len(batch)
-        return count
+def _extract_city(address: str) -> str:
+    """Parse city from a Google Maps formatted address."""
+    from scout.pipeline.supabase_service import _extract_city as _ec
+    return _ec(address)
+
+
+def _extract_state(address: str) -> str:
+    """Parse 2-letter state code from a formatted address."""
+    from scout.pipeline.supabase_service import _extract_state as _es
+    return _es(address)

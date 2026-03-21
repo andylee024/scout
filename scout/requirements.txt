@@ -1,7 +1,6 @@
 click>=8.0
 python-dotenv>=1.0
 requests>=2.28
-textual>=0.61.0
 googlemaps>=4.10.0
 
 # Data-source integrations

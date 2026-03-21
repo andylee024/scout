@@ -72,6 +72,7 @@ class TestGoogleMapsIntegration:
         assert business['website'] == 'testhvac.com'
         assert business['rating'] == 4.5
         assert business['reviews'] == 100
+        assert business['place_id'] == 'test123'
 
     @patch('data_sources.maps.google_maps_scraper.search_google_maps')
     def test_caching_works(self, mock_search, tool):

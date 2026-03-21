@@ -1,6 +1,6 @@
 # Scout
 
-Scout is a data pipeline for SMB (small and medium business) acquisition research. Given a natural-language query like *"HVAC businesses in Los Angeles"*, it pulls business and listing data into a unified local dataset for partner review and outbound outreach.
+Scout is a data pipeline for SMB (small and medium business) acquisition research. Given a natural-language query like *"HVAC businesses in Los Angeles"*, it pulls business and listing data into Supabase-backed records and helper exports for partner review and outbound outreach.
 
 ## What it does
 
@@ -9,9 +9,14 @@ Scout runs an ETL pipeline across two core runtime data sources:
 | Source | What it collects |
 |---|---|
 | **BizBuySell** | Business-for-sale listings (price, cash flow, broker, etc.) |
-| **Google Maps** | Nearby businesses (address, phone, website, rating, reviews) |
+| **Google Maps** | Nearby businesses (address, phone, website, rating, reviews, `place_id`) |
 
-Each source is scraped, normalized into canonical `Listing` or `Business` models, and persisted to a local SQLite database. The output is a `MarketDataset` containing businesses, listings, and per-source coverage stats. The lead-review TUI is still available for working through packaged owner-contact datasets while the Supabase review flow is being finalized.
+`scout run` scrapes both sources, normalizes them into canonical `Business` and `Listing` models, upserts businesses into Supabase, and returns a `MarketDataset` with businesses, listings, and per-source coverage stats.
+
+Today’s important boundary:
+- `Business` rows are persisted to Supabase.
+- `Listing` rows are returned in the run dataset, but the active Supabase store does not persist them yet.
+- Raw source payload persistence is not active in the current store.
 
 Reddit sentiment is retained as a supplemental source for market context, but it is not part of the default lead-building runner. The near-term merge target is `businesses + listings + clodo owner data + reviews`.
 
@@ -26,13 +31,12 @@ pip install -e .
 # Configure API keys
 cp .env.example .env
 # Edit .env with your Google Maps key
+# Add SUPABASE_URL and SUPABASE_KEY for pipeline/database commands
 # Add Reddit keys if you want supplemental sentiment
 
 # Run a query
 scout run "HVAC businesses in Los Angeles"
 
-# Optional: open the packaged lead-review TUI
-scout view --dataset fire-protection-ca-owner-contacts
 ```
 
 Output looks like:
@@ -53,13 +57,13 @@ source=bizbuysell status=success records=18 duration_ms=5100
 scout/
 ├── scout/                  # Application package
 │   ├── main.py             # CLI entry point (Click)
-│   ├── operator/           # Lead-review TUI and packaged datasets
 │   ├── pipeline/
 │   │   ├── runner.py       # Configures sources + store, kicks off a run
 │   │   ├── workflow.py     # ETL orchestration (fetch → normalize → persist)
-│   │   ├── models/         # Domain models (Query, Business, Listing, MarketDataset)
+│   │   ├── models/         # Domain models (Query, Business, Listing, Contact, MarketDataset)
 │   │   ├── data_sources/   # Pipeline-level source adapters
-│   │   └── data_store/     # Persistence layer (SQLite)
+│   │   ├── data_store/     # Persistence layer (Supabase)
+│   │   └── supabase_service.py  # CSV/Supabase helper commands
 │   ├── domain/             # Shared domain types
 │   └── shared/             # Utilities (query parsing, etc.)
 ├── data_sources/           # Raw scraper implementations
@@ -68,9 +72,9 @@ scout/
 │   ├── sentiment/          # Supplemental Reddit sentiment
 │   └── shared/             # Shared scraper utilities
 ├── tests/                  # Pytest suite (mirrors source structure)
-├── scripts/                # One-off validation and playground scripts
+├── scripts/                # Schema and helper scripts
 ├── docs/                   # Architecture notes and feature specs
-├── outputs/                # Cached results and exports (gitignored)
+├── outputs/                # Local CSV exports from helper commands (gitignored)
 ├── pyproject.toml          # Package config, tool settings
 └── requirements.txt        # Pinned dependencies
 ```
@@ -82,6 +86,7 @@ scout/
 - **Workflow** -- Iterates over data sources, runs fetch/normalize/persist for each one, and assembles the final `MarketDataset`.
 - **Runner** -- Top-level entry point that wires up the default sources and store, then calls the workflow.
 - **MarketDataset** -- The output of a pipeline run: businesses, listings, and coverage stats.
+- **Contact** -- Normalized owner/contact record used by the Clodo ingestion/upload flow.
 
 ## API keys
 
@@ -90,6 +95,7 @@ Copy `.env.example` to `.env` and fill in:
 | Key | Required for | Where to get it |
 |---|---|---|
 | `GOOGLE_MAPS_API_KEY` | Google Maps source | [Google Cloud Console](https://console.cloud.google.com/) (enable Places API) |
+| `SUPABASE_URL` / `SUPABASE_KEY` | `scout run` and database helper commands | Supabase project settings |
 | `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` | Optional Reddit sentiment | Reddit app credentials |
 
 ## Near-Term Merge Target
@@ -101,6 +107,17 @@ clodo            -> owners --------/
 google_reviews   -> review signals /
 
 reddit sentiment -> supplemental context (sidecar, not in default merge)
+```
+
+Current helper flow:
+
+```text
+scrape-businesses -> businesses.csv (includes place_id)
+ingest-contacts   -> contacts.csv
+upload-*          -> Supabase tables
+match-contacts    -> businesses <-> contacts links
+pull-leads        -> leads CSV export
+verify            -> table smoke check
 ```
 
 ## Development
@@ -126,4 +143,11 @@ ruff check .
 scout run "HVAC businesses in Los Angeles"       # default: up to 100 results, cache enabled
 scout run "plumbing in Texas" --max-results 50    # limit results
 scout run "car wash in California" --no-cache     # skip cache, force fresh scrape
+scout scrape-businesses "fire protection" "California"
+scout ingest-contacts data/clodo.csv
+scout upload-businesses outputs/businesses_fire_protection_California.csv
+scout upload-contacts outputs/contacts.csv
+scout match-contacts
+scout pull-leads --output outputs/leads.csv
+scout verify businesses
 ```

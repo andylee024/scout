@@ -4,6 +4,7 @@ This repo keeps a small canonical docs set for the Scout data pipeline.
 
 ## Active Docs
 - `docs/architecture.md` — source of truth for the runtime pipeline, code layout, and merge target.
+- `docs/database.md` — working Supabase setup, schema, migrations, and smoke checks.
 - `docs/prd.md` — current product scope, goals, and non-goals.
 - `docs/feature/v1-data-pipeline/plan.md` — current implementation roadmap.
 - `docs/feature/v1-data-pipeline/bizbuysell-notes.md` — BizBuySell-specific behavior and constraints.

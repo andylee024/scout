@@ -31,6 +31,7 @@ class GoogleMapsDataSource(DataSource):
             businesses.append(
                 Business(
                     name=str(item.get("name", "")).strip(),
+                    place_id=str(item.get("place_id", "")).strip(),
                     address=str(item.get("address", "")),
                     phone=str(item.get("phone", "")),
                     website=str(item.get("website", "")),

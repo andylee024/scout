@@ -35,7 +35,7 @@ def test_runner_default_sources_focus_on_businesses_and_listings(monkeypatch):
 
     monkeypatch.setattr("scout.pipeline.runner.GoogleMapsDataSource", lambda: StubSource("google_maps"))
     monkeypatch.setattr("scout.pipeline.runner.BizBuySellDataSource", lambda: StubSource("bizbuysell"))
-    monkeypatch.setattr("scout.pipeline.runner.SQLiteDataStore", StubStore)
+    monkeypatch.setattr("scout.pipeline.runner.get_supabase_store", StubStore)
 
     runner = Runner()
 
