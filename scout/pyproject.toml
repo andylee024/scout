@@ -42,6 +42,7 @@ packages = [
     "scout.pipeline.models",
     "scout.pipeline.data_sources",
     "scout.pipeline.data_store",
+    "scout.collaboration",
     "scout.domain",
     "scout.shared",
     "data_sources",
